@@ -37,6 +37,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Calendar;
 
 import com.example.ezequiel.camera2.others.CameraSource;
 import com.example.ezequiel.camera2.others.CameraSourcePreview;
@@ -77,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         context = getApplicationContext();
 
-        //Button takePictureButton = (Button) findViewById(R.id.btn_takepicture);
+        final Button recButton = (Button) findViewById(R.id.btn_record);
         Button switchButton = (Button) findViewById(R.id.btn_switch);
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
@@ -102,16 +103,42 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-//            takePictureButton.setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View v) {
-//                    if(useCamera2) {
-//                        if(mCamera2Source != null)mCamera2Source.takePicture(camera2SourceShutterCallback, camera2SourcePictureCallback);
-//                    } else {
-//                        if(mCameraSource != null)mCameraSource.takePicture(cameraSourceShutterCallback, cameraSourcePictureCallback);
+            File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            final String _createfilepath = new File(_filesdir, Calendar.getInstance().getTimeInMillis() + ".png").getAbsolutePath();
+
+            recButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    if (mCamera2Source.mIsRecordingVideo) {
+                        mCamera2Source.stopRecordingVideo();
+                    } else {
+                        recButton.setText("Stop");
+                        mCamera2Source.startRecordingVideo(_createfilepath);
+                    }
+//                    switch (v.getId()) {
+//                        //case R.id.video: {
+//                            if (mCamera2Source.mIsRecordingVideo) {
+//                                mCamera2Source.stopRecordingVideo();
+//                            } else {
+//                                recButton.setText("stop");
+//                                mCamera2Source.startRecordingVideo(_createfilepath);
+//                            }
+//                            break;
+//                        //}
+//                        case R.id.info: {
+////                            Activity activity = getActivity();
+////                            if (null != activity) {
+////                                new AlertDialog.Builder(activity)
+////                                        .setMessage(R.string.intro_message)
+////                                        .setPositiveButton(android.R.string.ok, null)
+////                                        .show();
+////                            }
+//                            break;
+//                        }
 //                    }
-//                }
-//            });
+                }
+            });
 
             mPreview.setOnTouchListener(CameraPreviewTouchListener);
         }
