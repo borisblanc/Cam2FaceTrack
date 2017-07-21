@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         context = getApplicationContext();
 
-        Button takePictureButton = (Button) findViewById(R.id.btn_takepicture);
+        //Button takePictureButton = (Button) findViewById(R.id.btn_takepicture);
         Button switchButton = (Button) findViewById(R.id.btn_switch);
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
@@ -102,76 +102,76 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            takePictureButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if(useCamera2) {
-                        if(mCamera2Source != null)mCamera2Source.takePicture(camera2SourceShutterCallback, camera2SourcePictureCallback);
-                    } else {
-                        if(mCameraSource != null)mCameraSource.takePicture(cameraSourceShutterCallback, cameraSourcePictureCallback);
-                    }
-                }
-            });
+//            takePictureButton.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    if(useCamera2) {
+//                        if(mCamera2Source != null)mCamera2Source.takePicture(camera2SourceShutterCallback, camera2SourcePictureCallback);
+//                    } else {
+//                        if(mCameraSource != null)mCameraSource.takePicture(cameraSourceShutterCallback, cameraSourcePictureCallback);
+//                    }
+//                }
+//            });
 
             mPreview.setOnTouchListener(CameraPreviewTouchListener);
         }
     }
 
-    final CameraSource.ShutterCallback cameraSourceShutterCallback = new CameraSource.ShutterCallback() {@Override public void onShutter() {Log.d(TAG, "Shutter Callback!");}};
-    final CameraSource.PictureCallback cameraSourcePictureCallback = new CameraSource.PictureCallback() {
-        @Override
-        public void onPictureTaken(Bitmap picture) {
-            Log.d(TAG, "Taken picture is here!");
-            FileOutputStream out = null;
-            try {
-                out = new FileOutputStream(new File(Environment.getExternalStorageDirectory(), "/camera_picture.png"));
-                picture.compress(Bitmap.CompressFormat.JPEG, 95, out);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    if (out != null) {
-                        out.close();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    };
+//    final CameraSource.ShutterCallback cameraSourceShutterCallback = new CameraSource.ShutterCallback() {@Override public void onShutter() {Log.d(TAG, "Shutter Callback!");}};
+//    final CameraSource.PictureCallback cameraSourcePictureCallback = new CameraSource.PictureCallback() {
+//        @Override
+//        public void onPictureTaken(Bitmap picture) {
+//            Log.d(TAG, "Taken picture is here!");
+//            FileOutputStream out = null;
+//            try {
+//                out = new FileOutputStream(new File(Environment.getExternalStorageDirectory(), "/camera_picture.png"));
+//                picture.compress(Bitmap.CompressFormat.JPEG, 95, out);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            } finally {
+//                try {
+//                    if (out != null) {
+//                        out.close();
+//                    }
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+//    };
 
-    final Camera2Source.ShutterCallback camera2SourceShutterCallback = new Camera2Source.ShutterCallback() {
-        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-        @Override
-        public void onShutter() {Log.d(TAG, "Shutter Callback for CAMERA2");}
-    };
+//    final Camera2Source.ShutterCallback camera2SourceShutterCallback = new Camera2Source.ShutterCallback() {
+//        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+//        @Override
+//        public void onShutter() {Log.d(TAG, "Shutter Callback for CAMERA2");}
+//    };
 
-    final Camera2Source.PictureCallback camera2SourcePictureCallback = new Camera2Source.PictureCallback() {
-        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-        @Override
-        public void onPictureTaken(Image image) {
-            Log.d(TAG, "Taken picture is here!");
-            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-            byte[] bytes = new byte[buffer.capacity()];
-            buffer.get(bytes);
-            Bitmap picture = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
-            FileOutputStream out = null;
-            try {
-                out = new FileOutputStream(new File(Environment.getExternalStorageDirectory(), "/camera2_picture.png"));
-                picture.compress(Bitmap.CompressFormat.JPEG, 95, out);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    if (out != null) {
-                        out.close();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    };
+//    final Camera2Source.PictureCallback camera2SourcePictureCallback = new Camera2Source.PictureCallback() {
+//        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+//        @Override
+//        public void onPictureTaken(Image image) {
+//            Log.d(TAG, "Taken picture is here!");
+//            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+//            byte[] bytes = new byte[buffer.capacity()];
+//            buffer.get(bytes);
+//            Bitmap picture = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
+//            FileOutputStream out = null;
+//            try {
+//                out = new FileOutputStream(new File(Environment.getExternalStorageDirectory(), "/camera2_picture.png"));
+//                picture.compress(Bitmap.CompressFormat.JPEG, 95, out);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            } finally {
+//                try {
+//                    if (out != null) {
+//                        out.close();
+//                    }
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+//    };
 
     private boolean checkGooglePlayAvailability() {
         GoogleApiAvailability googleApiAvailability = GoogleApiAvailability.getInstance();
