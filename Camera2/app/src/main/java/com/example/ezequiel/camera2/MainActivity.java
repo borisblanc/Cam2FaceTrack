@@ -240,45 +240,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /*private void createCameraSourceBack() {
-        previewFaceDetector = new FaceDetector.Builder(context)
-                .setClassificationType(FaceDetector.ALL_CLASSIFICATIONS)
-                .setLandmarkType(FaceDetector.ALL_LANDMARKS)
-                .setMode(FaceDetector.FAST_MODE)
-                .setProminentFaceOnly(true)
-                .setTrackingEnabled(true)
-                .build();
 
-        if(previewFaceDetector.isOperational()) {
-            previewFaceDetector.setProcessor(new MultiProcessor.Builder<>(new GraphicFaceTrackerFactory()).build());
-        } else {
-            Toast.makeText(context, "FACE DETECTION NOT AVAILABLE", Toast.LENGTH_SHORT).show();
-        }
-
-        if(useCamera2) {
-            mCamera2Source = new Camera2Source.Builder(context, previewFaceDetector)
-                    .setFocusMode(Camera2Source.CAMERA_AF_AUTO)
-                    .setFlashMode(Camera2Source.CAMERA_FLASH_AUTO)
-                    .setFacing(Camera2Source.CAMERA_FACING_BACK)
-                    .build();
-
-            //IF CAMERA2 HARDWARE LEVEL IS LEGACY, CAMERA2 IS NOT NATIVE.
-            //WE WILL USE CAMERA1.
-            if(mCamera2Source.isCamera2Native()) {
-                startCameraSource();
-            } else {
-                useCamera2 = false;
-                if(usingFrontCamera) createCameraSourceFront(); else createCameraSourceBack();
-            }
-        } else {
-            mCameraSource = new CameraSource.Builder(context, previewFaceDetector)
-                    .setFacing(CameraSource.CAMERA_FACING_BACK)
-                    .setRequestedFps(30.0f)
-                    .build();
-
-            startCameraSource();
-        }
-    }*/
 
     private void startCameraSource() {
         if(useCamera2) {
