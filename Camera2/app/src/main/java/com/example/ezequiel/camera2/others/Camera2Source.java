@@ -990,7 +990,7 @@ public class Camera2Source {
             mPreviewRequestBuilder.addTarget(recorderSurface);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReaderPreview.getSurface(), mMediaRecorder.getSurface()), 
+            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReaderPreview.getSurface(), mMediaRecorder.getSurface()),
 
                 new CameraCaptureSession.StateCallback() {
                         @Override
