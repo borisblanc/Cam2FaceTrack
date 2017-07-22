@@ -277,122 +277,33 @@ public class Camera2Source {
      */
     private ImageReader mImageReaderPreview;
 
-    private TextureView.SurfaceTextureListener mSurfaceTextureListener
-            = new TextureView.SurfaceTextureListener() {
-
-        @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture,
-                                              int width, int height) {
-            //openCameraRecorder(width, height);
-        }
-
-        @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture,
-                                                int width, int height) {
-            configureTransform(width, height);
-        }
-
-        @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-            return true;
-        }
-
-        @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
-        }
-
-    };
-
+//    private TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
+//
+//        @Override
+//        public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
+//            //openCameraRecorder(width, height);
+//        }
+//
+//        @Override
+//        public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
+//            configureTransform(width, height);
+//        }
+//
+//        @Override
+//        public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
+//            return true;
+//        }
+//
+//        @Override
+//        public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture)
+//        {
+//
+//        }
+//
+//    };
 
 
-    /**
-     * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
-     */
-    private CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
 
-        private void process(CaptureResult result) {
-            switch (mState) {
-                case STATE_PREVIEW: {
-                    // We have nothing to do when the camera preview is working normally.
-                    break;
-                }
-                case STATE_WAITING_LOCK: {
-//                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-//                    if (afState == null) {
-//                        captureStillPicture();
-//                    }
-//                    else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState
-//                            || CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState
-//                            || CaptureResult.CONTROL_AF_STATE_PASSIVE_UNFOCUSED == afState
-//                            || CaptureRequest.CONTROL_AF_STATE_PASSIVE_FOCUSED == afState
-//                            || CaptureRequest.CONTROL_AF_STATE_INACTIVE == afState)
-//                    {
-//                        // CONTROL_AE_STATE can be null on some devices
-//                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-//                        if (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-//                            mState = STATE_PICTURE_TAKEN;
-//                            captureStillPicture();
-//                        } else {
-//                            runPrecaptureSequence();
-//                        }
-//                    }
-                    break;
-                }
-                case STATE_WAITING_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null ||
-                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
-                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-                        mState = STATE_WAITING_NON_PRECAPTURE;
-                    }
-                    break;
-                }
-                case STATE_WAITING_NON_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-//                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-//                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-//                        mState = STATE_PICTURE_TAKEN;
-//                        captureStillPicture();
-//                    }
-                    break;
-                }
-            }
-        }
-
-        @Override
-        public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
-            process(partialResult);
-        }
-
-        @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-            if(request.getTag() == ("FOCUS_TAG")) {
-                //The focus trigger is complete!
-                //Resume repeating request, clear AF trigger.
-                mAutoFocusCallback.onAutoFocus(true);
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
-                mPreviewRequestBuilder.setTag("");
-                mPreviewRequest = mPreviewRequestBuilder.build();
-                try {
-                    mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
-                } catch(CameraAccessException ex) {
-                    Log.d("ASD", "AUTO FOCUS FAILURE: "+ex);
-                }
-            } else {
-                process(result);
-            }
-        }
-
-        @Override
-        public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
-            if(request.getTag() == "FOCUS_TAG") {
-                Log.d("ASD", "Manual AF failure: "+failure);
-                mAutoFocusCallback.onAutoFocus(false);
-            }
-        }
-
-    };
 
     /**
      * This is a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
@@ -425,6 +336,7 @@ public class Camera2Source {
             mCameraOpenCloseLock.release();
             mCameraDevice = cameraDevice;
             createCameraPreviewSession();
+            //mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
         @Override
         public void onDisconnected(@NonNull CameraDevice cameraDevice) {
@@ -480,6 +392,11 @@ public class Camera2Source {
             return this;
         }
 
+        public Builder setSavePath(String recordpath) {
+            mCameraSource.mNextVideoAbsolutePath = recordpath;
+            return this;
+        }
+
         /**
          * Sets the camera to use (either {@link #CAMERA_FACING_BACK} or
          * {@link #CAMERA_FACING_FRONT}). Default: back facing.
@@ -504,30 +421,6 @@ public class Camera2Source {
     //==============================================================================================
     // Bridge Functionality for the Camera2 API
     //==============================================================================================
-
-    /**
-     * Callback interface used to signal the moment of actual image capture.
-     */
-//    public interface ShutterCallback {
-//        /**
-//         * Called as near as possible to the moment when a photo is captured from the sensor. This
-//         * is a good opportunity to play a shutter sound or give other feedback of camera operation.
-//         * This may be some time after the photo was triggered, but some time before the actual data
-//         * is available.
-//         */
-//        void onShutter();
-//    }
-
-    /**
-     * Callback interface used to supply image data from a photo capture.
-     */
-//    public interface PictureCallback {
-//        /**
-//         * Called when image data is available after a picture is taken.  The format of the data
-//         * is a JPEG Image.
-//         */
-//        void onPictureTaken(Image image);
-//    }
 
     /**
      * Callback interface used to notify on completion of camera auto focus.
@@ -619,6 +512,7 @@ public class Camera2Source {
                 mImageReaderPreview.close();
                 mImageReaderPreview = null;
             }
+            stopRecordingVideo();
 //            if (null != mImageReaderStill) {
 //                mImageReaderStill.close();
 //                mImageReaderStill = null;
@@ -972,6 +866,7 @@ public class Camera2Source {
 
             configureTransform(width, height);
             mMediaRecorder = new MediaRecorder();
+            setUpMediaRecorder();
             manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -981,6 +876,8 @@ public class Camera2Source {
             // Currently an NPE is thrown when the Camera2API is used but not supported on the
             // device this code runs.
             Log.d(TAG, "Camera Error: "+e.getMessage());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -1027,210 +924,44 @@ public class Camera2Source {
         //startPreview();
     }
 
-    public void startRecordingVideo(String filepath) {
-        if (null == mCameraDevice || !mTextureView.isAvailable() || null == mPreviewSize) {
-            return;
-        }
-        try {
-            //closePreviewSession(); //WHY??
-            setUpMediaRecorder(filepath);
-            SurfaceTexture texture = mTextureView.getSurfaceTexture();
-            assert texture != null;
-            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
-            mPreviewBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-            List<Surface> surfaces = new ArrayList<>();
-
-            // Set up Surface for the camera preview
-            Surface previewSurface = new Surface(texture);
-            surfaces.add(previewSurface);
-            mPreviewBuilder.addTarget(previewSurface);
-
-            // Set up Surface for the MediaRecorder
-            Surface recorderSurface = mMediaRecorder.getSurface();
-            surfaces.add(recorderSurface);
-            mPreviewBuilder.addTarget(recorderSurface);
-
-            // Start a capture session
-            // Once the session starts, we can update the UI and start recording
-            mCameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
-
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    //mPreviewSession = cameraCaptureSession;
-                    //updatePreview();
-//                    getActivity().runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            // UI
-//                            mButtonVideo.setText(R.string.stop);
-//                            mIsRecordingVideo = true;
-//
-//                            // Start recording
-//                            mMediaRecorder.start();
-//                        }
-//                    });
 
 
-                        //mButtonVideo.setText(R.string.stop);
-                        mIsRecordingVideo = true;
-
-                        // Start recording
-                        mMediaRecorder.start();
-
-
-                }
-
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-//                    Activity activity = getActivity();
-//                    if (null != activity) {
-//                        Toast.makeText(activity, "Failed", Toast.LENGTH_SHORT).show();
-//                    }
-                }
-            }, mBackgroundHandler);
-        } catch (CameraAccessException | IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    /**
-     * Update the camera preview. {@link #startPreview()} needs to be called in advance.
-     */
-//    private void updatePreview() {
-//        if (null == mCameraDevice) {
-//            return;
-//        }
-//        try {
-//            //setUpCaptureRequestBuilder(mPreviewBuilder);
-//            mPreviewBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-//            HandlerThread thread = new HandlerThread("CameraPreview");
-//            thread.start();
-//            mPreviewSession.setRepeatingRequest(mPreviewBuilder.build(), null, mBackgroundHandler);
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-    private void setUpMediaRecorder(String filepath) throws IOException {
+    private void setUpMediaRecorder() throws IOException {
 //        final Activity activity = getActivity();
 //        if (null == activity) {
 //            return;
 //        }
-        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
-        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        if (mNextVideoAbsolutePath == null || mNextVideoAbsolutePath.isEmpty()) {
-            mNextVideoAbsolutePath = filepath;
+        try {
+            mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+            mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+//        if (mNextVideoAbsolutePath == null || mNextVideoAbsolutePath.isEmpty()) {
+//            mNextVideoAbsolutePath = filepath;
+//        }
+            mMediaRecorder.setOutputFile(mNextVideoAbsolutePath);
+            mMediaRecorder.setVideoEncodingBitRate(10000000);
+            mMediaRecorder.setVideoFrameRate(30);
+            mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
+            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            //int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+            int rotation = mSensorOrientation;
+            switch (mSensorOrientation) {
+                case SENSOR_ORIENTATION_DEFAULT_DEGREES:
+                    mMediaRecorder.setOrientationHint(ORIENTATIONS.get(rotation));
+                    break;
+                case SENSOR_ORIENTATION_INVERSE_DEGREES:
+                    mMediaRecorder.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation));
+                    break;
+            }
+            mMediaRecorder.prepare();
         }
-        mMediaRecorder.setOutputFile(mNextVideoAbsolutePath);
-        mMediaRecorder.setVideoEncodingBitRate(10000000);
-        mMediaRecorder.setVideoFrameRate(30);
-        mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
-        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-        //int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        int rotation = mSensorOrientation;
-        switch (mSensorOrientation) {
-            case SENSOR_ORIENTATION_DEFAULT_DEGREES:
-                mMediaRecorder.setOrientationHint(ORIENTATIONS.get(rotation));
-                break;
-            case SENSOR_ORIENTATION_INVERSE_DEGREES:
-                mMediaRecorder.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation));
-                break;
+        catch(Exception ex)
+        {
+            String x = ex.getMessage();
         }
-        mMediaRecorder.prepare();
     }
-    /**
-     * Lock the focus as the first step for a still image capture.
-     */
-//    private void lockFocus() {
-//        try {
-//            // This is how to tell the camera to lock focus.
-//            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-//            // Tell #mCaptureCallback to wait for the lock.
-//            mState = STATE_WAITING_LOCK;
-//            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
-    /**
-     * Unlock the focus. This method should be called when still image capture sequence is
-     * finished.
-     */
-//    private void unlockFocus() {
-//        try {
-//            // Reset the auto-focus trigger
-//            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-//            if(mFlashSupported) {
-//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, mFlashMode);
-//            }
-//            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-//            // After this, the camera will go back to the normal state of preview.
-//            mState = STATE_PREVIEW;
-//            mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-    /**
-     * Run the precapture sequence for capturing a still image. This method should be called when
-     * we get a response in {@link #mCaptureCallback} from {@link #lockFocus()}.
-     */
-//    private void runPrecaptureSequence() {
-//        try {
-//            // This is how to tell the camera to trigger.
-//            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
-//            // Tell #mCaptureCallback to wait for the precapture sequence to be set.
-//            mState = STATE_WAITING_PRECAPTURE;
-//            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-//    /**
-//     * Capture a still picture. This method should be called when we get a response in
-//     * {@link #mCaptureCallback} from both {@link #lockFocus()}.
-//     */
-//    private void captureStillPicture() {
-//        try {
-//            if (null == mCameraDevice) {
-//                return;
-//            }
-//            if(mShutterCallback != null) {
-//                mShutterCallback.onShutter();
-//            }
-//            // This is the CaptureRequest.Builder that we use to take a picture.
-//            final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-//            captureBuilder.addTarget(mImageReaderStill.getSurface());
-//
-//            // Use the same AE and AF modes as the preview.
-//            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, mFocusMode);
-//            if(mFlashSupported) {
-//                captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, mFlashMode);
-//            }
-//
-//            // Orientation
-//            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(mDisplayOrientation));
-//
-//            CameraCaptureSession.CaptureCallback CaptureCallback = new CameraCaptureSession.CaptureCallback() {
-//
-//                @Override
-//                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-//                    unlockFocus();
-//                }
-//            };
-//
-//            mCaptureSession.stopRepeating();
-//            mCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     /**
      * Creates a new {@link CameraCaptureSession} for camera preview.
@@ -1254,8 +985,12 @@ public class Camera2Source {
             mPreviewRequestBuilder.addTarget(surface);
             mPreviewRequestBuilder.addTarget(mImageReaderPreview.getSurface());
 
+            Surface recorderSurface = mMediaRecorder.getSurface();
+            //surfaces.add(recorderSurface);
+            mPreviewRequestBuilder.addTarget(recorderSurface);
+
             // Here, we create a CameraCaptureSession for camera preview.
-            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReaderPreview.getSurface()), //mImageReaderStill.getSurface()), //add new surface her for video capture
+            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReaderPreview.getSurface(), mMediaRecorder.getSurface()), 
 
                 new CameraCaptureSession.StateCallback() {
                         @Override
@@ -1276,7 +1011,16 @@ public class Camera2Source {
 
                                 // Finally, we start displaying the camera preview.
                                 mPreviewRequest = mPreviewRequestBuilder.build();
-                                mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
+                                //mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
+                                mCaptureSession.setRepeatingRequest(mPreviewRequest, null, mBackgroundHandler);
+
+
+
+                                mIsRecordingVideo = true;
+
+
+                                // Start recording
+                                mMediaRecorder.start();
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
@@ -1285,9 +1029,7 @@ public class Camera2Source {
                         @Override
                         public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {Log.d(TAG, "Configuration failed!");}
             }
-
             , null
-
             );
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -1411,7 +1153,7 @@ public class Camera2Source {
                     // We need to clear mPendingFrameData to ensure that this buffer isn't
                     // recycled back to the camera before we are done using that data.
 
-                    testSavebitmap(mPreviewSize, mPendingFrameData);
+                    //testSavebitmap(mPreviewSize, mPendingFrameData);
 
                     mPendingFrameData = null;
 
@@ -1537,15 +1279,5 @@ public class Camera2Source {
         return yuv;
     }
 
-//    private class PictureDoneCallback implements ImageReader.OnImageAvailableListener {
-//        private PictureCallback mDelegate;
-//
-//        @Override
-//        public void onImageAvailable(ImageReader reader) {
-//            if(mDelegate != null) {
-//                mDelegate.onPictureTaken(reader.acquireNextImage());
-//            }
-//        }
-//
-//    };
+
 }

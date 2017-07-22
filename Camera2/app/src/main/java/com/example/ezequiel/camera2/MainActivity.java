@@ -71,6 +71,12 @@ public class MainActivity extends AppCompatActivity {
     // ANY ATTEMPT TO START CAMERA2 ON API < 21 WILL CRASH.
     private boolean useCamera2 = false;
 
+    private String GetFileoutputPath()
+    {
+        File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        return new File(_filesdir, Calendar.getInstance().getTimeInMillis() + ".mp4").getAbsolutePath();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,8 +109,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            final String _createfilepath = new File(_filesdir, Calendar.getInstance().getTimeInMillis() + ".png").getAbsolutePath();
 
             recButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -114,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
                         mCamera2Source.stopRecordingVideo();
                     } else {
                         recButton.setText("Stop");
-                        mCamera2Source.startRecordingVideo(_createfilepath);
+                        //mCamera2Source.startRecordingVideo(_createfilepath);
                     }
 //                    switch (v.getId()) {
 //                        //case R.id.video: {
@@ -218,7 +222,9 @@ public class MainActivity extends AppCompatActivity {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
                 useCamera2 = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP);
                 createCameraSource(Camera2Source.CAMERA_FACING_FRONT);
-            } else {
+                //ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 0);
+            }
+            else {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
             }
         } else {
@@ -246,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
                     .setFocusMode(Camera2Source.CAMERA_AF_AUTO)
                     .setFlashMode(Camera2Source.CAMERA_FLASH_AUTO)
                     .setFacing(facing) //Camera2Source.CAMERA_FACING_FRONT = 1 or CAMERA_FACING_BACK = 0
+                    .setSavePath(GetFileoutputPath())
                     .build();
 
             //IF CAMERA2 HARDWARE LEVEL IS LEGACY, CAMERA2 IS NOT NATIVE.
