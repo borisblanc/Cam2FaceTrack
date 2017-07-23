@@ -3,6 +3,7 @@ package com.example.ezequiel.camera2;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -82,8 +83,10 @@ public class MainActivity extends AppCompatActivity {
         try {
             super.onCreate(savedInstanceState);
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
             setContentView(R.layout.activity_main);
             context = getApplicationContext();
+
 
             final Button recButton = (Button) findViewById(R.id.btn_record);
             Button switchButton = (Button) findViewById(R.id.btn_switch);
@@ -145,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-                mPreview.setOnTouchListener(CameraPreviewTouchListener);
+                //mPreview.setOnTouchListener(CameraPreviewTouchListener);
             }
         }
         catch (Exception e)
@@ -365,48 +368,48 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private final CameraSourcePreview.OnTouchListener CameraPreviewTouchListener = new CameraSourcePreview.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent pEvent) {
-            v.onTouchEvent(pEvent);
-            if (pEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                int autoFocusX = (int) (pEvent.getX() - Utils.dpToPx(60)/2);
-                int autoFocusY = (int) (pEvent.getY() - Utils.dpToPx(60)/2);
-                ivAutoFocus.setTranslationX(autoFocusX);
-                ivAutoFocus.setTranslationY(autoFocusY);
-                ivAutoFocus.setVisibility(View.VISIBLE);
-                ivAutoFocus.bringToFront();
-                if(useCamera2) {
-                    if(mCamera2Source != null) {
-                        mCamera2Source.autoFocus(new Camera2Source.AutoFocusCallback() {
-                            @Override
-                            public void onAutoFocus(boolean success) {
-                                runOnUiThread(new Runnable() {
-                                    @Override public void run() {ivAutoFocus.setVisibility(View.GONE);}
-                                });
-                            }
-                        }, pEvent, v.getWidth(), v.getHeight());
-                    } else {
-                        ivAutoFocus.setVisibility(View.GONE);
-                    }
-                } else {
-                    if(mCameraSource != null) {
-                        mCameraSource.autoFocus(new CameraSource.AutoFocusCallback() {
-                            @Override
-                            public void onAutoFocus(boolean success) {
-                                runOnUiThread(new Runnable() {
-                                    @Override public void run() {ivAutoFocus.setVisibility(View.GONE);}
-                                });
-                            }
-                        });
-                    } else {
-                        ivAutoFocus.setVisibility(View.GONE);
-                    }
-                }
-            }
-            return false;
-        }
-    };
+//    private final CameraSourcePreview.OnTouchListener CameraPreviewTouchListener = new CameraSourcePreview.OnTouchListener() {
+//        @Override
+//        public boolean onTouch(View v, MotionEvent pEvent) {
+//            v.onTouchEvent(pEvent);
+//            if (pEvent.getAction() == MotionEvent.ACTION_DOWN) {
+//                int autoFocusX = (int) (pEvent.getX() - Utils.dpToPx(60)/2);
+//                int autoFocusY = (int) (pEvent.getY() - Utils.dpToPx(60)/2);
+//                ivAutoFocus.setTranslationX(autoFocusX);
+//                ivAutoFocus.setTranslationY(autoFocusY);
+//                ivAutoFocus.setVisibility(View.VISIBLE);
+//                ivAutoFocus.bringToFront();
+//                if(useCamera2) {
+//                    if(mCamera2Source != null) {
+//                        mCamera2Source.autoFocus(new Camera2Source.AutoFocusCallback() {
+//                            @Override
+//                            public void onAutoFocus(boolean success) {
+//                                runOnUiThread(new Runnable() {
+//                                    @Override public void run() {ivAutoFocus.setVisibility(View.GONE);}
+//                                });
+//                            }
+//                        }, pEvent, v.getWidth(), v.getHeight());
+//                    } else {
+//                        ivAutoFocus.setVisibility(View.GONE);
+//                    }
+//                } else {
+//                    if(mCameraSource != null) {
+//                        mCameraSource.autoFocus(new CameraSource.AutoFocusCallback() {
+//                            @Override
+//                            public void onAutoFocus(boolean success) {
+//                                runOnUiThread(new Runnable() {
+//                                    @Override public void run() {ivAutoFocus.setVisibility(View.GONE);}
+//                                });
+//                            }
+//                        });
+//                    } else {
+//                        ivAutoFocus.setVisibility(View.GONE);
+//                    }
+//                }
+//            }
+//            return false;
+//        }
+//    };
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

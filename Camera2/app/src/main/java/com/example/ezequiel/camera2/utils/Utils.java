@@ -6,15 +6,28 @@ package com.example.ezequiel.camera2.utils;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
 import android.graphics.Point;
 import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.WindowManager;
 
 import com.google.android.gms.common.images.Size;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class Utils {
 
@@ -64,5 +77,70 @@ public class Utils {
             size[i] = new Size(sizes[i].getWidth(), sizes[i].getHeight());
         }
         return size;
+    }
+
+
+    public static void testSaveRawImage(Size s, byte [] mPendingFrameData)
+    {
+        File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        String createfilepath = new File(_filesdir, Calendar.getInstance().getTimeInMillis() + ".png").getAbsolutePath();
+
+        BufferedOutputStream bos = null;
+        try {
+            //ByteBuffer imagedata = outputFrame.getGrayscaleImageData().duplicate();
+            YuvImage yuvimage = new YuvImage(mPendingFrameData, ImageFormat.NV21, s.getWidth(), s.getHeight(), null);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            yuvimage.compressToJpeg(new Rect(0, 0, s.getWidth(), s.getHeight()), 100, baos); // Where 100 is the quality of the generated jpeg
+            byte[] jpegArray = baos.toByteArray();
+            Bitmap bitmap = BitmapFactory.decodeByteArray(jpegArray, 0, jpegArray.length);
+
+            bos = new BufferedOutputStream(new FileOutputStream(createfilepath));
+
+            bitmap.compress(Bitmap.CompressFormat.PNG, 90, bos);
+            bitmap.recycle();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (Exception ex){
+            String a = ex.toString();
+        }
+        finally {
+            if (bos != null) try {
+                bos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+    }
+
+    public static void testSavebitmap(Bitmap bitmap){
+        File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        String createfilepath = new File(_filesdir, Calendar.getInstance().getTimeInMillis() + ".png").getAbsolutePath();
+
+        BufferedOutputStream bos = null;
+        try {
+
+            //Bitmap bitmap = BitmapFactory.decodeByteArray(jpegArray, 0, jpegArray.length);
+
+            bos = new BufferedOutputStream(new FileOutputStream(createfilepath));
+
+            bitmap.compress(Bitmap.CompressFormat.PNG, 90, bos);
+            bitmap.recycle();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        catch (Exception ex){
+            String a = ex.toString();
+        }
+        finally {
+            if (bos != null) try {
+                bos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 }

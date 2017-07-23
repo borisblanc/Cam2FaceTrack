@@ -16,6 +16,7 @@ import android.graphics.PorterDuff;
 
 import com.example.ezequiel.camera2.R;
 import com.example.ezequiel.camera2.others.GraphicOverlay;
+import com.example.ezequiel.camera2.utils.Utils;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.Landmark;
 
@@ -60,6 +61,8 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
         opt.inScaled = false;
         resources = context.getResources();
         marker = BitmapFactory.decodeResource(resources, R.drawable.marker, opt);
+
+
     }
 
     public void setId(int id) {

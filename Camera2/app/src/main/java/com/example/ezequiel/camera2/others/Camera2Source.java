@@ -47,7 +47,7 @@ import android.util.SparseIntArray;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
-import android.widget.Toast;
+
 
 import com.example.ezequiel.camera2.utils.Utils;
 import com.google.android.gms.common.images.Size;
@@ -111,12 +111,16 @@ public class Camera2Source {
     private int mFocusMode = CAMERA_AF_AUTO;
 
     private static final String TAG = "Camera2Source";
-    private static final double maxRatioTolerance = 0.1;
+    private static final double maxRatioTolerance = 0.2;
     private Context mContext;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
     private boolean cameraStarted = false;
     private int mSensorOrientation;
+
+    //hard code for now until i figure this shit out
+    private static int _width = 1280;
+    private static int _height = 720;
 
     /**
      * A reference to the opened {@link CameraDevice}.
@@ -586,81 +590,81 @@ public class Camera2Source {
         return mFacing;
     }
 
-    public void autoFocus(@Nullable AutoFocusCallback cb, MotionEvent pEvent, int screenW, int screenH) {
-        if(cb != null) {
-            mAutoFocusCallback = cb;
-        }
-        if(sensorArraySize != null) {
-            final int y = (int)pEvent.getX() / screenW * sensorArraySize.height();
-            final int x = (int)pEvent.getY() / screenH * sensorArraySize.width();
-            final int halfTouchWidth = 150;
-            final int halfTouchHeight = 150;
-            MeteringRectangle focusAreaTouch = new MeteringRectangle(
-                    Math.max(x-halfTouchWidth, 0),
-                    Math.max(y-halfTouchHeight, 0),
-                    halfTouchWidth*2,
-                    halfTouchHeight*2,
-                    MeteringRectangle.METERING_WEIGHT_MAX - 1);
+//    public void autoFocus(@Nullable AutoFocusCallback cb, MotionEvent pEvent, int screenW, int screenH) {
+//        if(cb != null) {
+//            mAutoFocusCallback = cb;
+//        }
+//        if(sensorArraySize != null) {
+//            final int y = (int)pEvent.getX() / screenW * sensorArraySize.height();
+//            final int x = (int)pEvent.getY() / screenH * sensorArraySize.width();
+//            final int halfTouchWidth = 150;
+//            final int halfTouchHeight = 150;
+//            MeteringRectangle focusAreaTouch = new MeteringRectangle(
+//                    Math.max(x-halfTouchWidth, 0),
+//                    Math.max(y-halfTouchHeight, 0),
+//                    halfTouchWidth*2,
+//                    halfTouchHeight*2,
+//                    MeteringRectangle.METERING_WEIGHT_MAX - 1);
+//
+//            try {
+//                mCaptureSession.stopRepeating();
+//                //Cancel any existing AF trigger (repeated touches, etc.)
+//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+//                //mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+//
+//                //Now add a new AF trigger with focus region
+//                if(isMeteringAreaAFSupported) {
+//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusAreaTouch});
+//                }
+//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+//                mPreviewRequestBuilder.setTag("FOCUS_TAG"); //we'll capture this later for resuming the preview!
+//                //Then we ask for a single request (not repeating!)
+//                //mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+//            } catch(CameraAccessException ex) {
+//                Log.d("ASD", "AUTO FOCUS EXCEPTION: "+ex);
+//            }
+//        }
+//    }
 
-            try {
-                mCaptureSession.stopRepeating();
-                //Cancel any existing AF trigger (repeated touches, etc.)
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-                //mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-
-                //Now add a new AF trigger with focus region
-                if(isMeteringAreaAFSupported) {
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusAreaTouch});
-                }
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-                mPreviewRequestBuilder.setTag("FOCUS_TAG"); //we'll capture this later for resuming the preview!
-                //Then we ask for a single request (not repeating!)
-                //mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-            } catch(CameraAccessException ex) {
-                Log.d("ASD", "AUTO FOCUS EXCEPTION: "+ex);
-            }
-        }
-    }
 
 
-
-    private Size getBestAspectPictureSize(android.util.Size[] supportedPictureSizes) {
-        float targetRatio = Utils.getScreenRatio(mContext);
-        Size bestSize = null;
-        TreeMap<Double, List> diffs = new TreeMap<>();
-
-        for (android.util.Size size : supportedPictureSizes) {
-            float ratio = (float)size.getWidth() / size.getHeight();
-            double diff = Math.abs(ratio - targetRatio);
-            if (diff < maxRatioTolerance){
-                if (diffs.keySet().contains(diff)){
-                    //add the value to the list
-                    diffs.get(diff).add(size);
-                } else {
-                    List newList = new ArrayList<>();
-                    newList.add(size);
-                    diffs.put(diff, newList);
-                }
-            }
-        }
-
-        //diffs now contains all of the usable sizes
-        //now let's see which one has the least amount of
-        for (Map.Entry entry: diffs.entrySet()){
-            List<android.util.Size> entries = (List)entry.getValue();
-            for (android.util.Size s: entries) {
-                if(bestSize == null) {
-                    bestSize = new Size(s.getWidth(), s.getHeight());
-                } else if(bestSize.getWidth() < s.getWidth() || bestSize.getHeight() < s.getHeight()) {
-                    bestSize = new Size(s.getWidth(), s.getHeight());
-                }
-            }
-        }
-        return bestSize;
-    }
+//    private Size getBestAspectPictureSize(android.util.Size[] supportedPictureSizes) {
+//        float targetRatio = Utils.getScreenRatio(mContext);
+//        Size bestSize = null;
+//        TreeMap<Double, List> diffs = new TreeMap<>();
+//
+//        for (android.util.Size size : supportedPictureSizes) {
+//            float ratio = (float)size.getWidth() / size.getHeight();
+//            double diff = Math.abs(ratio - targetRatio);
+//            if (diff < maxRatioTolerance){
+//                if (diffs.keySet().contains(diff)){
+//                    //add the value to the list
+//                    diffs.get(diff).add(size);
+//                } else {
+//                    List newList = new ArrayList<>();
+//                    newList.add(size);
+//                    diffs.put(diff, newList);
+//                }
+//            }
+//        }
+//
+//        //diffs now contains all of the usable sizes
+//        //now let's see which one has the least amount of
+//        for (Map.Entry entry: diffs.entrySet()){
+//            List<android.util.Size> entries = (List)entry.getValue();
+//            for (android.util.Size s: entries) {
+//                if(bestSize == null) {
+//                    bestSize = new Size(s.getWidth(), s.getHeight());
+//                } else if(bestSize.getWidth() < s.getWidth() || bestSize.getHeight() < s.getHeight()) {
+//                    bestSize = new Size(s.getWidth(), s.getHeight());
+//                }
+//            }
+//        }
+//        return bestSize;
+//    }
 
     /**
      * Given {@code choices} of {@code Size}s supported by a camera, choose the smallest one that
@@ -780,10 +784,6 @@ public class Camera2Source {
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             if (map == null) {return;}
 
-            // For still image captures, we use the largest available size.
-            Size largest = getBestAspectPictureSize(map.getOutputSizes(ImageFormat.JPEG));
-//            mImageReaderStill = ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, /*maxImages*/2);
-//            mImageReaderStill.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
 
             sensorArraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
             Integer maxAFRegions = characteristics.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF);
@@ -840,7 +840,13 @@ public class Camera2Source {
             // garbage capture data.
             Size[] outputSizes = Utils.sizeToSize(map.getOutputSizes(SurfaceTexture.class));
             Size[] outputSizesMediaRecorder = Utils.sizeToSize(map.getOutputSizes(MediaRecorder.class));
-            mPreviewSize = chooseOptimalSize(outputSizes, rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight, largest);
+
+            // For still image captures, we use the largest available size.
+            //hardcode until i can figure this out
+            Size hardcodesize = new Size(_width, _height);
+            //Size largest = hardcodesize;//getBestAspectPictureSize(map.getOutputSizes(SurfaceTexture.class));
+
+            mPreviewSize = chooseOptimalSize(outputSizes, rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth, maxPreviewHeight, hardcodesize);
 
             mVideoSize = chooseVideoSize(outputSizesMediaRecorder);
 
@@ -881,7 +887,8 @@ public class Camera2Source {
      */
     private static Size chooseVideoSize(Size[] choices) {
         for (Size size : choices) {
-            if (size.getWidth() == size.getHeight() * 4 / 3 && size.getWidth() <= 1080) {
+            if (size.getWidth() == size.getHeight() * 16 / 9)// && size.getWidth() <= 1080)
+            {
                 return size;
             }
         }
@@ -897,21 +904,15 @@ public class Camera2Source {
 //    }
 
     public void stopRecordingVideo() {
-        // UI
-        mIsRecordingVideo = false;
-        //mButtonVideo.setText(R.string.record);
-        // Stop recording
-        mMediaRecorder.stop();
-        mMediaRecorder.reset();
 
-//        Activity activity = getActivity();
-//        if (null != activity) {
-//            Toast.makeText(activity, "Video saved: " + mNextVideoAbsolutePath,
-//                    Toast.LENGTH_SHORT).show();
-//            Log.d(TAG, "Video saved: " + mNextVideoAbsolutePath);
-//        }
+        mIsRecordingVideo = false;
+        if (mMediaRecorder != null) {
+            mMediaRecorder.stop();
+            mMediaRecorder.reset();
+        }
+
         mNextVideoAbsolutePath = null;
-        //startPreview();
+
     }
 
 
@@ -1012,7 +1013,10 @@ public class Camera2Source {
                         }
 
                         @Override
-                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {Log.d(TAG, "Configuration failed!");}
+                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession)
+                        {
+                            Log.d(TAG, "Configuration failed!");
+                        }
             }
             , null
             );
@@ -1130,6 +1134,7 @@ public class Camera2Source {
 
                     outputFrame = new Frame.Builder()
                             .setImageData(ByteBuffer.wrap(quarterNV21(mPendingFrameData, mPreviewSize.getWidth(), mPreviewSize.getHeight())), mPreviewSize.getWidth()/4, mPreviewSize.getHeight()/4, ImageFormat.NV21)
+                            //.setImageData(ByteBuffer.wrap(mPendingFrameData), mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.NV21)
                             .setId(mPendingFrameId)
                             .setTimestampMillis(mPendingTimeMillis)
                             .setRotation(getDetectorOrientation(mSensorOrientation))
@@ -1138,7 +1143,9 @@ public class Camera2Source {
                     // We need to clear mPendingFrameData to ensure that this buffer isn't
                     // recycled back to the camera before we are done using that data.
 
-                    //testSavebitmap(mPreviewSize, mPendingFrameData);
+
+//                    if (mPendingFrameId == 100)
+//                        Utils.testSaveRawImage(mPreviewSize, mPendingFrameData);
 
                     mPendingFrameData = null;
 
@@ -1158,42 +1165,7 @@ public class Camera2Source {
             }
         }
 
-        private void testSavebitmap(Size s, byte [] mPendingFrameData)
-        {
-            if (mPendingFrameId == 10) {
 
-                    File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                    String createfilepath = new File(_filesdir, Calendar.getInstance().getTimeInMillis() + ".png").getAbsolutePath();
-
-                    BufferedOutputStream bos = null;
-                    try {
-                        //ByteBuffer imagedata = outputFrame.getGrayscaleImageData().duplicate();
-                        YuvImage yuvimage = new YuvImage(mPendingFrameData, ImageFormat.NV21, s.getWidth(), s.getHeight(), null);
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        yuvimage.compressToJpeg(new Rect(0, 0, s.getWidth(), s.getHeight()), 100, baos); // Where 100 is the quality of the generated jpeg
-                        byte[] jpegArray = baos.toByteArray();
-                        Bitmap bitmap = BitmapFactory.decodeByteArray(jpegArray, 0, jpegArray.length);
-
-                        bos = new BufferedOutputStream(new FileOutputStream(createfilepath));
-
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 90, bos);
-                        bitmap.recycle();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                    catch (Exception ex){
-                        String a = ex.toString();
-                    }
-                    finally {
-                        if (bos != null) try {
-                            bos.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                    }
-                }
-        }
     }
 
     /**
