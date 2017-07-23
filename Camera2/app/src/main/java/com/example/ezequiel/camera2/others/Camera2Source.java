@@ -919,7 +919,7 @@ public class Camera2Source {
     private void setUpMediaRecorder()
     {
         try {
-            //mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC); //not needed for now
+            //mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC); //don't need audio for now
             mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
             mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
             mMediaRecorder.setOutputFile(mNextVideoAbsolutePath);
@@ -927,7 +927,7 @@ public class Camera2Source {
             mMediaRecorder.setVideoFrameRate(30);
             mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
             mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-            //mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            //mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC); //don't need audio for now
             //int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             int rotation = mSensorOrientation;
             switch (mSensorOrientation) {
