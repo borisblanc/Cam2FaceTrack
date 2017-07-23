@@ -625,15 +625,7 @@ public class Camera2Source {
         }
     }
 
-    /**
-     * Initiate a still image capture. The camera preview is suspended
-     * while the picture is being taken, but will resume once picture taking is done.
-     */
-//    public void takePicture(ShutterCallback shutter, PictureCallback picCallback) {
-//        mShutterCallback = shutter;
-//        mOnImageAvailableListener.mDelegate = picCallback;
-//        lockFocus();
-//    }
+
 
     private Size getBestAspectPictureSize(android.util.Size[] supportedPictureSizes) {
         float targetRatio = Utils.getScreenRatio(mContext);
@@ -869,15 +861,13 @@ public class Camera2Source {
             setUpMediaRecorder();
             manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Camera access Error: "+e.getMessage());
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
         } catch (NullPointerException e) {
             // Currently an NPE is thrown when the Camera2API is used but not supported on the
             // device this code runs.
             Log.d(TAG, "Camera Error: "+e.getMessage());
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -926,24 +916,18 @@ public class Camera2Source {
 
 
 
-    private void setUpMediaRecorder() throws IOException {
-//        final Activity activity = getActivity();
-//        if (null == activity) {
-//            return;
-//        }
+    private void setUpMediaRecorder()
+    {
         try {
-            mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            //mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC); //not needed for now
             mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
             mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-//        if (mNextVideoAbsolutePath == null || mNextVideoAbsolutePath.isEmpty()) {
-//            mNextVideoAbsolutePath = filepath;
-//        }
             mMediaRecorder.setOutputFile(mNextVideoAbsolutePath);
             mMediaRecorder.setVideoEncodingBitRate(10000000);
             mMediaRecorder.setVideoFrameRate(30);
             mMediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
             mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            //mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             //int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             int rotation = mSensorOrientation;
             switch (mSensorOrientation) {
@@ -958,7 +942,8 @@ public class Camera2Source {
         }
         catch(Exception ex)
         {
-            String x = ex.getMessage();
+            Log.e(TAG, "Exception thrown from MediaRecorder config.", ex);
+            throw new RuntimeException("mMediaRecorder config failed.", ex);
         }
     }
 

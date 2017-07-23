@@ -44,7 +44,7 @@ import com.example.ezequiel.camera2.others.CameraSourcePreview;
 import com.example.ezequiel.camera2.others.GraphicOverlay;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "Ezequiel Adrian Camera";
+    private static final String TAG = "MainActivity";
     private Context context;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
     private static final int REQUEST_STORAGE_PERMISSION = 201;
@@ -79,47 +79,48 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_main);
-        context = getApplicationContext();
+        try {
+            super.onCreate(savedInstanceState);
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            setContentView(R.layout.activity_main);
+            context = getApplicationContext();
 
-        final Button recButton = (Button) findViewById(R.id.btn_record);
-        Button switchButton = (Button) findViewById(R.id.btn_switch);
-        mPreview = (CameraSourcePreview) findViewById(R.id.preview);
-        mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
-        cameraVersion = (TextView) findViewById(R.id.cameraVersion);
-        ivAutoFocus = (ImageView) findViewById(R.id.ivAutoFocus);
+            final Button recButton = (Button) findViewById(R.id.btn_record);
+            Button switchButton = (Button) findViewById(R.id.btn_switch);
+            mPreview = (CameraSourcePreview) findViewById(R.id.preview);
+            mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
+            cameraVersion = (TextView) findViewById(R.id.cameraVersion);
+            ivAutoFocus = (ImageView) findViewById(R.id.ivAutoFocus);
 
-        if(checkGooglePlayAvailability()) {
-            requestPermissionThenOpenCamera();
+            if (checkGooglePlayAvailability()) {
+                requestPermissionThenOpenCamera();
 
-            switchButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if(usingFrontCamera) {
-                        stopCameraSource();
-                        createCameraSource(Camera2Source.CAMERA_FACING_FRONT );
-                        usingFrontCamera = false;
-                    } else {
-                        stopCameraSource();
-                        createCameraSource(Camera2Source.CAMERA_FACING_BACK );
-                        usingFrontCamera = true;
+                switchButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (usingFrontCamera) {
+                            stopCameraSource();
+                            createCameraSource(Camera2Source.CAMERA_FACING_FRONT);
+                            usingFrontCamera = false;
+                        } else {
+                            stopCameraSource();
+                            createCameraSource(Camera2Source.CAMERA_FACING_BACK);
+                            usingFrontCamera = true;
+                        }
                     }
-                }
-            });
+                });
 
 
-            recButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
+                recButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
 
-                    if (mCamera2Source.mIsRecordingVideo) {
-                        mCamera2Source.stopRecordingVideo();
-                    } else {
-                        recButton.setText("Stop");
-                        //mCamera2Source.startRecordingVideo(_createfilepath);
-                    }
+                        if (mCamera2Source.mIsRecordingVideo) {
+                            mCamera2Source.stopRecordingVideo();
+                        } else {
+                            recButton.setText("Stop");
+                            //mCamera2Source.startRecordingVideo(_createfilepath);
+                        }
 //                    switch (v.getId()) {
 //                        //case R.id.video: {
 //                            if (mCamera2Source.mIsRecordingVideo) {
@@ -141,11 +142,17 @@ public class MainActivity extends AppCompatActivity {
 //                            break;
 //                        }
 //                    }
-                }
-            });
+                    }
+                });
 
-            mPreview.setOnTouchListener(CameraPreviewTouchListener);
+                mPreview.setOnTouchListener(CameraPreviewTouchListener);
+            }
         }
+        catch (Exception e)
+        {
+            Log.d(TAG,e.getMessage());
+        }
+
     }
 
 //    final CameraSource.ShutterCallback cameraSourceShutterCallback = new CameraSource.ShutterCallback() {@Override public void onShutter() {Log.d(TAG, "Shutter Callback!");}};
