@@ -39,6 +39,8 @@ public class CameraSourcePreview extends ViewGroup {
     private int screenHeight;
     private int screenRotation;
 
+    private boolean mTrackRecord;
+
     public CameraSourcePreview(Context context) {
         super(context);
         screenHeight = Utils.getScreenHeight(context);
@@ -71,9 +73,10 @@ public class CameraSourcePreview extends ViewGroup {
         start(cameraSource);
     }
 
-    public void start(Camera2Source camera2Source, GraphicOverlay overlay) throws IOException {
+    public void start(Camera2Source camera2Source, GraphicOverlay overlay, boolean trackRecord) throws IOException {
         usingCameraOne = false;
         mOverlay = overlay;
+        mTrackRecord = trackRecord;
         start(camera2Source);
     }
 
@@ -136,7 +139,7 @@ public class CameraSourcePreview extends ViewGroup {
                     }
                     mStartRequested = false;
                 } else {
-                    mCamera2Source.start(mAutoFitTextureView, screenRotation);
+                    mCamera2Source.start(mAutoFitTextureView, screenRotation, mTrackRecord);
                     if (mOverlay != null) {
                         Size size = mCamera2Source.getPreviewSize();
                         if(size != null) {

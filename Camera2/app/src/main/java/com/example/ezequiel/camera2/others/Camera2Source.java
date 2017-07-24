@@ -47,6 +47,7 @@ import android.util.SparseIntArray;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
+import android.widget.Toast;
 
 
 import com.example.ezequiel.camera2.utils.Utils;
@@ -95,19 +96,11 @@ public class Camera2Source {
     public static final int CAMERA_FACING_FRONT = 1;
     private int mFacing = CAMERA_FACING_BACK;
 
-    public static final int CAMERA_FLASH_OFF = CaptureRequest.CONTROL_AE_MODE_OFF;
-    public static final int CAMERA_FLASH_ON = CaptureRequest.CONTROL_AE_MODE_ON;
+
     public static final int CAMERA_FLASH_AUTO = CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH;
-    public static final int CAMERA_FLASH_ALWAYS = CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH;
-    public static final int CAMERA_FLASH_REDEYE = CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH_REDEYE;
     private int mFlashMode = CAMERA_FLASH_AUTO;
 
     public static final int CAMERA_AF_AUTO = CaptureRequest.CONTROL_AF_MODE_AUTO;
-    public static final int CAMERA_AF_EDOF = CaptureRequest.CONTROL_AF_MODE_EDOF;
-    public static final int CAMERA_AF_MACRO = CaptureRequest.CONTROL_AF_MODE_MACRO;
-    public static final int CAMERA_AF_OFF = CaptureRequest.CONTROL_AF_MODE_OFF;
-    public static final int CAMERA_AF_CONTINUOUS_PICTURE = CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-    public static final int CAMERA_AF_CONTINUOUS_VIDEO = CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO;
     private int mFocusMode = CAMERA_AF_AUTO;
 
     private static final String TAG = "Camera2Source";
@@ -142,25 +135,8 @@ public class Camera2Source {
      */
     private static final int STATE_PREVIEW = 0;
 
-    /**
-     * Camera state: Waiting for the focus to be locked.
-     */
-    private static final int STATE_WAITING_LOCK = 1;
 
-    /**
-     * Camera state: Waiting for the exposure to be precapture state.
-     */
-    private static final int STATE_WAITING_PRECAPTURE = 2;
 
-    /**
-     * Camera state: Waiting for the exposure state to be something other than precapture.
-     */
-    private static final int STATE_WAITING_NON_PRECAPTURE = 3;
-
-    /**
-     * Camera state: Picture was taken.
-     */
-    private static final int STATE_PICTURE_TAKEN = 4;
 
     private int mDisplayOrientation;
 
@@ -174,11 +150,11 @@ public class Camera2Source {
      */
     private CaptureRequest mPreviewRequest;
 
-    /**
-     * The current state of camera state for taking pictures.
-     *
-     * @see #mCaptureCallback
-     */
+//    /**
+//     * The current state of camera state for taking pictures.
+//     *
+//     * @see #mCaptureCallback
+//     */
     private int mState = STATE_PREVIEW;
 
     /**
@@ -211,12 +187,10 @@ public class Camera2Source {
      */
     private AutoFitTextureView mTextureView;
 
-    //private ShutterCallback mShutterCallback;
-
     private AutoFocusCallback mAutoFocusCallback;
 
-    private Rect sensorArraySize;
-    private boolean isMeteringAreaAFSupported = false;
+//    private Rect sensorArraySize;
+//    private boolean isMeteringAreaAFSupported = false;
 
     private CameraManager manager = null;
 
@@ -262,12 +236,6 @@ public class Camera2Source {
      */
     private MediaRecorder mMediaRecorder;
 
-    /**
-     * Whether the app is recording video now
-     */
-    public boolean mIsRecordingVideo;
-
-    private CaptureRequest.Builder mPreviewBuilder;
     public String mNextVideoAbsolutePath;
 
     private CameraCaptureSession mPreviewSession;
@@ -280,6 +248,10 @@ public class Camera2Source {
      * An {@link ImageReader} that handles live preview.
      */
     private ImageReader mImageReaderPreview;
+
+    private CaptureRequest.Builder mPreviewBuilder;
+
+    public boolean mTrackRecord;
 
 //    private TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
 //
@@ -339,7 +311,10 @@ public class Camera2Source {
         public void onOpened(@NonNull CameraDevice cameraDevice) {
             mCameraOpenCloseLock.release();
             mCameraDevice = cameraDevice;
-            createCameraPreviewSession();
+            if (mTrackRecord)
+                createCameraTrackRecordSession();
+            else
+                createPreviewSession();
             //mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
         @Override
@@ -370,11 +345,24 @@ public class Camera2Source {
         private final Detector<?> mDetector;
         private Camera2Source mCameraSource = new Camera2Source();
 
+
+        //for preview only
+        public Builder (Context context)
+        {
+            if (context == null) {
+                throw new IllegalArgumentException("No context supplied.");
+            }
+
+            mDetector = null;
+
+            mCameraSource.mContext = context;
+        }
+
         /**
          * Creates a camera source builder with the supplied context and detector.  Camera preview
-         * images will be streamed to the associated detector upon starting the camera source.
+         * images will be streamed to the associated detector upon starting the camera source. Also video recording/saving will start to path specified
          */
-        public Builder(Context context, Detector<?> detector) {
+        public Builder(Context context, Detector<?> detector, String recordpath) {
             if (context == null) {
                 throw new IllegalArgumentException("No context supplied.");
             }
@@ -384,6 +372,7 @@ public class Camera2Source {
 
             mDetector = detector;
             mCameraSource.mContext = context;
+            mCameraSource.mNextVideoAbsolutePath = recordpath;
         }
 
         public Builder setFocusMode(int mode) {
@@ -393,11 +382,6 @@ public class Camera2Source {
 
         public Builder setFlashMode(int mode) {
             mCameraSource.mFlashMode = mode;
-            return this;
-        }
-
-        public Builder setSavePath(String recordpath) {
-            mCameraSource.mNextVideoAbsolutePath = recordpath;
             return this;
         }
 
@@ -554,7 +538,7 @@ public class Camera2Source {
      * @throws IOException if the supplied texture view could not be used as the preview display
      */
     @RequiresPermission(Manifest.permission.CAMERA)
-    public Camera2Source start(AutoFitTextureView textureView, int displayOrientation) throws IOException {
+    public Camera2Source start(AutoFitTextureView textureView, int displayOrientation, boolean trackRecord) throws IOException {
         mDisplayOrientation = displayOrientation;
         if(ContextCompat.checkSelfPermission(mContext, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             if (cameraStarted) {
@@ -568,8 +552,10 @@ public class Camera2Source {
             mProcessingThread.start();
 
             mTextureView = textureView;
+
+            mTrackRecord = trackRecord;
             if (mTextureView.isAvailable()) {
-                openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+                setUpCameraOutputs(mTextureView.getWidth(), mTextureView.getHeight());
             }
         }
         return this;
@@ -590,44 +576,6 @@ public class Camera2Source {
         return mFacing;
     }
 
-//    public void autoFocus(@Nullable AutoFocusCallback cb, MotionEvent pEvent, int screenW, int screenH) {
-//        if(cb != null) {
-//            mAutoFocusCallback = cb;
-//        }
-//        if(sensorArraySize != null) {
-//            final int y = (int)pEvent.getX() / screenW * sensorArraySize.height();
-//            final int x = (int)pEvent.getY() / screenH * sensorArraySize.width();
-//            final int halfTouchWidth = 150;
-//            final int halfTouchHeight = 150;
-//            MeteringRectangle focusAreaTouch = new MeteringRectangle(
-//                    Math.max(x-halfTouchWidth, 0),
-//                    Math.max(y-halfTouchHeight, 0),
-//                    halfTouchWidth*2,
-//                    halfTouchHeight*2,
-//                    MeteringRectangle.METERING_WEIGHT_MAX - 1);
-//
-//            try {
-//                mCaptureSession.stopRepeating();
-//                //Cancel any existing AF trigger (repeated touches, etc.)
-//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-//                //mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-//
-//                //Now add a new AF trigger with focus region
-//                if(isMeteringAreaAFSupported) {
-//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusAreaTouch});
-//                }
-//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
-//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-//                mPreviewRequestBuilder.setTag("FOCUS_TAG"); //we'll capture this later for resuming the preview!
-//                //Then we ask for a single request (not repeating!)
-//                //mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
-//            } catch(CameraAccessException ex) {
-//                Log.d("ASD", "AUTO FOCUS EXCEPTION: "+ex);
-//            }
-//        }
-//    }
 
 
 
@@ -728,9 +676,6 @@ public class Camera2Source {
 
     }
 
-    private void openCamera(int width, int height) {
-        setUpCameraOutputs(width, height);
-    }
 
     /**
      * Configures the necessary {@link android.graphics.Matrix} transformation to `mTextureView`.
@@ -764,6 +709,8 @@ public class Camera2Source {
         mTextureView.setTransform(matrix);
     }
 
+
+
     /**
      * Sets up member variables related to camera.
      *
@@ -785,11 +732,6 @@ public class Camera2Source {
             if (map == null) {return;}
 
 
-            sensorArraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-            Integer maxAFRegions = characteristics.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF);
-            if(maxAFRegions != null) {
-                isMeteringAreaAFSupported = maxAFRegions >= 1;
-            }
             // Find out if we need to swap dimension to get the preview size relative to sensor
             // coordinate.
             boolean swappedDimensions = false;
@@ -863,8 +805,10 @@ public class Camera2Source {
             mFlashSupported = available == null ? false : available;
 
             configureTransform(width, height);
-            mMediaRecorder = new MediaRecorder();
-            setUpMediaRecorder();
+            if (mTrackRecord) { //don't do this for preview only
+                mMediaRecorder = new MediaRecorder();
+                setUpMediaRecorder();
+            }
             manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             Log.e(TAG, "Camera access Error: "+e.getMessage());
@@ -896,16 +840,10 @@ public class Camera2Source {
         return choices[choices.length - 1];
     }
 
-//    private void closePreviewSession() {
-//        if (mPreviewSession != null) {
-//            mPreviewSession.close();
-//            mPreviewSession = null;
-//        }
-//    }
 
     public void stopRecordingVideo() {
 
-        mIsRecordingVideo = false;
+        mTrackRecord = false;
         if (mMediaRecorder != null) {
             mMediaRecorder.stop();
             mMediaRecorder.reset();
@@ -952,8 +890,9 @@ public class Camera2Source {
     /**
      * Creates a new {@link CameraCaptureSession} for camera preview.
      */
-    private void createCameraPreviewSession() {
+    private void createCameraTrackRecordSession() {
         try {
+            closePreviewSession();
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             assert texture != null;
 
@@ -1000,11 +939,7 @@ public class Camera2Source {
                                 //mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
                                 mCaptureSession.setRepeatingRequest(mPreviewRequest, null, mBackgroundHandler);
 
-
-
-                                mIsRecordingVideo = true;
-
-
+                                mTrackRecord = true;
                                 // Start recording
                                 mMediaRecorder.start();
                             } catch (CameraAccessException e) {
@@ -1020,6 +955,69 @@ public class Camera2Source {
             }
             , null
             );
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void closePreviewSession() {
+        if (mPreviewSession != null) {
+            mPreviewSession.close();
+            mPreviewSession = null;
+        }
+    }
+
+    /**
+     * Start the camera preview.
+     */
+    private void createPreviewSession() {
+        if (null == mCameraDevice || !mTextureView.isAvailable() || null == mPreviewSize) {
+            return;
+        }
+        try {
+            //closePreviewSession();
+            SurfaceTexture texture = mTextureView.getSurfaceTexture();
+            assert texture != null;
+            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+            mPreviewBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+
+            Surface previewSurface = new Surface(texture);
+            mPreviewBuilder.addTarget(previewSurface);
+
+            mCameraDevice.createCaptureSession(Collections.singletonList(previewSurface),
+                    new CameraCaptureSession.StateCallback() {
+
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession session) {
+                            mPreviewSession = session;
+                            updatePreview();
+                        }
+
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                            //Activity activity = getActivity();
+                            //if (null != activity) {
+                            //Toast.makeText(activity, "Failed", Toast.LENGTH_SHORT).show();
+                            //}
+                        }
+                    }, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Update the camera preview. {@link #createPreviewSession()} needs to be called in advance.
+     */
+    private void updatePreview() {
+        if (null == mCameraDevice) {
+            return;
+        }
+        try {
+            mPreviewBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+            HandlerThread thread = new HandlerThread("CameraPreview");
+            thread.start();
+            mPreviewSession.setRepeatingRequest(mPreviewBuilder.build(), null, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -1132,12 +1130,15 @@ public class Camera2Source {
                         return;
                     }
 
+
+
                     outputFrame = new Frame.Builder()
                             .setImageData(ByteBuffer.wrap(quarterNV21(mPendingFrameData, mPreviewSize.getWidth(), mPreviewSize.getHeight())), mPreviewSize.getWidth()/4, mPreviewSize.getHeight()/4, ImageFormat.NV21)
                             //.setImageData(ByteBuffer.wrap(mPendingFrameData), mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.NV21)
                             .setId(mPendingFrameId)
                             .setTimestampMillis(mPendingTimeMillis)
-                            .setRotation(getDetectorOrientation(mSensorOrientation))
+                            //.setRotation(getDetectorOrientation(mSensorOrientation))
+                            .setRotation(Frame.ROTATION_0) //set frame upright so we can detect without custom detector for now
                             .build();
 
                     // We need to clear mPendingFrameData to ensure that this buffer isn't
