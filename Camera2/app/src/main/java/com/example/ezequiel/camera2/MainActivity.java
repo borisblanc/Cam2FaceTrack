@@ -27,7 +27,11 @@ import android.widget.Toast;
 
 import com.example.ezequiel.camera2.others.Camera2Source;
 import com.example.ezequiel.camera2.others.CustomFaceDetector;
+import com.example.ezequiel.camera2.others.ExtractMpegFramesTest;
+
 import com.example.ezequiel.camera2.others.FaceGraphic;
+
+import com.example.ezequiel.camera2.others.FrameData;
 import com.example.ezequiel.camera2.utils.Utils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -41,8 +45,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.example.ezequiel.camera2.others.CameraSource;
 import com.example.ezequiel.camera2.others.CameraSourcePreview;
@@ -77,9 +87,15 @@ public class MainActivity extends AppCompatActivity {
     // ANY ATTEMPT TO START CAMERA2 ON API < 21 WILL CRASH.
     private boolean useCamera2 = false;
 
-    private TreeMap<Long,SparseArray<Face>> _faces;
+    private ArrayList<FrameData> _faces;
 
     private boolean trackRecord = false; //determines if regular preview is opened or we start track record also
+
+    public Button recButton;
+
+    private boolean testmpegextract = true;
+
+    private int _fps = 30;
 
     private String GetFileoutputPath()
     {
@@ -91,13 +107,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         try {
             super.onCreate(savedInstanceState);
+//            if (testmpegextract) {
+//                File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+//                String filename = "VID_20170714_133159.mp4";
+//                ExtractMpegFramesTest test = new ExtractMpegFramesTest();
+//                test.testExtractMpegFrames(_filesdir, filename);
+//            }
+
+
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
             //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); lock this in manifest instead
             setContentView(R.layout.activity_main);
             context = getApplicationContext();
 
 
-            final Button recButton = (Button) findViewById(R.id.btn_record);
+
+
+            recButton = (Button) findViewById(R.id.btn_record);
             Button switchButton = (Button) findViewById(R.id.btn_switch);
             mPreview = (CameraSourcePreview) findViewById(R.id.preview);
             mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
@@ -127,12 +153,18 @@ public class MainActivity extends AppCompatActivity {
                 recButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-
                         if (mCamera2Source.mTrackRecord) {
-                            mCamera2Source.stopRecordingVideo();
-                        } else {
-                            recButton.setText("Stop");
-                            //mCamera2Source.startRecordingVideo(_createfilepath);
+                            stopCameraSource(); //call this to release everything or all the shit breaks
+                            trackRecord = false;
+                            recButton.setText(R.string.record);
+                            requestPermissionThenOpenCamera();
+                            FrameData.FaceData bestface = Processfaces(_faces);
+                        }
+                        else {
+                            stopCameraSource(); //call this to release everything or all the shit breaks
+                            trackRecord = true;
+                            recButton.setText(R.string.stop);
+                            requestPermissionThenOpenCamera();
                         }
                     }
                 });
@@ -146,29 +178,56 @@ public class MainActivity extends AppCompatActivity {
                 //Checkfaces();
                 //mPreview.setOnTouchListener(CameraPreviewTouchListener);
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Throwable e) {
             Log.d(TAG,e.getMessage());
         }
 
     }
 
-//    private void Checkfaces() {
-//        try {
-//            int frames = 0;
-//            while (frames < 1000) {
-//                Thread.sleep(1000);
-//                int count = _faces.size();
-//                Log.d(TAG, "count = " + count);
-//                frames++;
-//            }
-//        }
-//        catch (InterruptedException e)
-//        {
-//
-//        }
-//    }
+
+
+
+
+    private FrameData.FaceData Processfaces(ArrayList<FrameData> _faces)
+    {
+        if (_faces == null)
+            return null;
+
+        ArrayList<FrameData.FaceData> corefinalscores = new ArrayList<>();
+        int coreframeslength = _fps * 2; //core sample of frames will be two seconds of video might in future vary depending on user settings
+        int computelimit = _faces.size() - coreframeslength; //this will keep walking average calcs only happening within range
+
+        for(FrameData facedata : _faces )
+        {
+            Long currenttimestamp = facedata._timeStamp;
+            if (_faces.indexOf(facedata) < computelimit) //makes sense to compute because we will can use it
+            {
+                List<FrameData> coreframes = _faces.subList(_faces.indexOf(facedata), _faces.indexOf(facedata) + coreframeslength);
+                ArrayList<FrameData.FaceData> corescores = new ArrayList<>();
+                for (FrameData face : coreframes)
+                {
+                    corescores.add(new FrameData.FaceData(face._timeStamp, Utils.GetImageUsability(Utils.GetFirstFace(face._faces)))); //improve this buy moving all the face finding and scoring outside so its done only once per frame
+                }
+
+                double avg = Utils.calculateAverage(corescores);
+                double stDev = Utils.stDev(corescores);
+
+                corefinalscores.add(new FrameData.FaceData(currenttimestamp, avg - stDev )); //avg - std dev should give those with best avg score and lowest deviation
+            }
+            else //can't use computations past this point so just need timestamps
+            {
+                corefinalscores.add(new FrameData.FaceData(currenttimestamp, 0 ));
+            }
+        }
+
+        FrameData.FaceData bestfacedata = Collections.max(corefinalscores, new FrameData.compScore());
+
+        return bestfacedata;
+    }
+
+
+
+
 
 
     private boolean checkGooglePlayAvailability() {
@@ -210,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
                     .setTrackingEnabled(true)
                     .build();
 
-            _faces = new TreeMap<>(); //new face list for every camera recording session
+            _faces = new ArrayList<>(); //new face list for every camera recording session
             CustomFaceDetector faceDetector = new CustomFaceDetector(previewFaceDetector, _faces);
 
             if (previewFaceDetector.isOperational()) {
@@ -341,48 +400,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-//    private final CameraSourcePreview.OnTouchListener CameraPreviewTouchListener = new CameraSourcePreview.OnTouchListener() {
-//        @Override
-//        public boolean onTouch(View v, MotionEvent pEvent) {
-//            v.onTouchEvent(pEvent);
-//            if (pEvent.getAction() == MotionEvent.ACTION_DOWN) {
-//                int autoFocusX = (int) (pEvent.getX() - Utils.dpToPx(60)/2);
-//                int autoFocusY = (int) (pEvent.getY() - Utils.dpToPx(60)/2);
-//                ivAutoFocus.setTranslationX(autoFocusX);
-//                ivAutoFocus.setTranslationY(autoFocusY);
-//                ivAutoFocus.setVisibility(View.VISIBLE);
-//                ivAutoFocus.bringToFront();
-//                if(useCamera2) {
-//                    if(mCamera2Source != null) {
-//                        mCamera2Source.autoFocus(new Camera2Source.AutoFocusCallback() {
-//                            @Override
-//                            public void onAutoFocus(boolean success) {
-//                                runOnUiThread(new Runnable() {
-//                                    @Override public void run() {ivAutoFocus.setVisibility(View.GONE);}
-//                                });
-//                            }
-//                        }, pEvent, v.getWidth(), v.getHeight());
-//                    } else {
-//                        ivAutoFocus.setVisibility(View.GONE);
-//                    }
-//                } else {
-//                    if(mCameraSource != null) {
-//                        mCameraSource.autoFocus(new CameraSource.AutoFocusCallback() {
-//                            @Override
-//                            public void onAutoFocus(boolean success) {
-//                                runOnUiThread(new Runnable() {
-//                                    @Override public void run() {ivAutoFocus.setVisibility(View.GONE);}
-//                                });
-//                            }
-//                        });
-//                    } else {
-//                        ivAutoFocus.setVisibility(View.GONE);
-//                    }
-//                }
-//            }
-//            return false;
-//        }
-//    };
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

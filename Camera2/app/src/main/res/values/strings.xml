@@ -3,4 +3,5 @@
     <string name="take_picture">PICTURE</string>
     <string name="switch_camera">SWITCH</string>
     <string name="record">Record</string>
+    <string name="stop">Stop</string>
 </resources>

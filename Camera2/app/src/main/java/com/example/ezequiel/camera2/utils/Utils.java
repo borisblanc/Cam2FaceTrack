@@ -15,10 +15,14 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.os.Environment;
 import android.util.DisplayMetrics;
+import android.util.Log;
+import android.util.SparseArray;
 import android.view.Display;
 import android.view.WindowManager;
 
+import com.example.ezequiel.camera2.others.FrameData;
 import com.google.android.gms.common.images.Size;
+import com.google.android.gms.vision.face.Face;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -143,4 +147,84 @@ public class Utils {
 
         }
     }
+
+    public static Face GetFirstFace(SparseArray<Face> faces)
+    {
+        int arraySize = faces.size();
+        if (arraySize != 0) {
+            for (int i = 0; i < arraySize; i++) {
+                if (faces.valueAt(i) != null)
+                    return faces.valueAt(i);
+            }
+        }
+        return null;
+    }
+
+    public static float GetImageUsability(Face face) //face landmark scores are always 0 to 1 or -1 if not detected
+    {
+        try
+        {
+            if (face != null && Math.abs(face.getEulerY()) <= 18) //forward facing
+            {
+                //always zero instead of -1 for these because at least they are forward facing
+                float smilescore = face.getIsSmilingProbability() < 0 ? 0 : face.getIsSmilingProbability();
+                float righteyescore = face.getIsRightEyeOpenProbability() < 0 ? 0 : face.getIsRightEyeOpenProbability();
+                float lefteyescore = face.getIsLeftEyeOpenProbability() < 0 ? 0 : face.getIsLeftEyeOpenProbability();
+
+                return (smilescore + righteyescore + lefteyescore) / 3;
+            }
+            else if (face != null && Math.abs(face.getEulerY()) > 18) //if not forward facing then return 0
+            {
+                return 0;
+            }
+            else //if no face -1
+            {
+                return -1;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.d("utils.GetImageUsability",e.getMessage());
+            return 0;
+        }
+    }
+
+    public static double calculateAverage(ArrayList<FrameData.FaceData>  table) {
+        double sum = 0;
+        if(!table.isEmpty()) {
+            for (FrameData.FaceData mark : table) {
+                sum += mark._score;
+            }
+            return sum / (double) table.size();
+        }
+        return sum;
+    }
+
+    public static double stDev (ArrayList<FrameData.FaceData> table)
+    {
+        // Step 1:
+        double mean = calculateAverage(table);
+        double temp = 0;
+
+        for (int i = 0; i < table.size(); i++)
+        {
+            double val = table.get(i)._score;
+
+            // Step 2:
+            double squrDiffToMean = Math.pow(val - mean, 2);
+
+            // Step 3:
+            temp += squrDiffToMean;
+        }
+
+        // Step 4:
+        double meanOfDiffs = temp / (double) table.size();
+
+        // Step 5:
+        return Math.sqrt(meanOfDiffs);
+    }
+
+
+
+
 }

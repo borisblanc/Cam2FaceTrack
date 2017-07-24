@@ -723,8 +723,8 @@ public class Camera2Source {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            if(manager == null)
-                manager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
+
+            manager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
 
             mCameraId = manager.getCameraIdList()[mFacing];
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(mCameraId);
@@ -950,7 +950,15 @@ public class Camera2Source {
                         @Override
                         public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession)
                         {
-                            Log.d(TAG, "Configuration failed!");
+                            Activity activity = (Activity) mContext;
+                            if (null != activity) {
+                                Toast.makeText(activity, "Failed Track & Record", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                        @Override
+                        public void onClosed(@NonNull CameraCaptureSession cameraCaptureSession)
+                        {
+                            String s = "moo";
                         }
             }
             , null
@@ -995,10 +1003,10 @@ public class Camera2Source {
 
                         @Override
                         public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                            //Activity activity = getActivity();
-                            //if (null != activity) {
-                            //Toast.makeText(activity, "Failed", Toast.LENGTH_SHORT).show();
-                            //}
+                            Activity activity = (Activity) mContext;
+                            if (null != activity) {
+                                Toast.makeText(activity, "Failed Preview", Toast.LENGTH_SHORT).show();
+                            }
                         }
                     }, mBackgroundHandler);
         } catch (CameraAccessException e) {
