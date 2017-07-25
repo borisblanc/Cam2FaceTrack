@@ -144,8 +144,7 @@ public class ExtractMpegFramesTest extends AndroidTestCase {
 
             MediaFormat format = extractor.getTrackFormat(trackIndex);
             if (VERBOSE) {
-                Log.d(TAG, "Video size is " + format.getInteger(MediaFormat.KEY_WIDTH) + "x" +
-                        format.getInteger(MediaFormat.KEY_HEIGHT));
+                Log.d(TAG, "Video size is " + format.getInteger(MediaFormat.KEY_WIDTH) + "x" + format.getInteger(MediaFormat.KEY_HEIGHT));
             }
 
             // Could use width/height from the MediaFormat to get full-size frames.

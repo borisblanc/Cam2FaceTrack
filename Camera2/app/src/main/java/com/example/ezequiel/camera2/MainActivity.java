@@ -1,13 +1,8 @@
 package com.example.ezequiel.camera2;
 
 import android.Manifest;
-import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -16,8 +11,6 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.util.SparseArray;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -26,38 +19,27 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.ezequiel.camera2.others.Camera2Source;
+import com.example.ezequiel.camera2.others.CameraSource;
+import com.example.ezequiel.camera2.others.CameraSourcePreview;
 import com.example.ezequiel.camera2.others.CustomFaceDetector;
-import com.example.ezequiel.camera2.others.ExtractMpegFramesTest;
-
 import com.example.ezequiel.camera2.others.FaceGraphic;
-
 import com.example.ezequiel.camera2.others.FrameData;
+import com.example.ezequiel.camera2.others.GraphicOverlay;
+import com.example.ezequiel.camera2.others.VideoUtils;
 import com.example.ezequiel.camera2.utils.Utils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
+import com.google.android.gms.vision.face.LargestFaceFocusingProcessor;
 
-import java.io.Console;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
-
-import com.example.ezequiel.camera2.others.CameraSource;
-import com.example.ezequiel.camera2.others.CameraSourcePreview;
-import com.example.ezequiel.camera2.others.GraphicOverlay;
-import com.google.android.gms.vision.face.LargestFaceFocusingProcessor;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -97,11 +79,28 @@ public class MainActivity extends AppCompatActivity {
 
     private int _fps = 30;
 
-    private String GetFileoutputPath()
+    private int _vidlengthseconds = 3;
+
+    private File VideoFileDir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+    private String VideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
+
+    private String RecordedVideoOutputFilePath()
     {
-        File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        return new File(_filesdir, Calendar.getInstance().getTimeInMillis() + ".mp4").getAbsolutePath();
+        return new File(VideoFileDir, VideoFileName).getAbsolutePath();
     }
+
+    private File RecordedVideoOutputFileFolder()
+    {
+        return new File(VideoFileDir, VideoFileName);
+    }
+
+    private File TrimmedVideoOutputFileFolder()
+    {
+        String trimVideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
+        return new File(VideoFileDir, trimVideoFileName);
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,7 +157,12 @@ public class MainActivity extends AppCompatActivity {
                             trackRecord = false;
                             recButton.setText(R.string.record);
                             requestPermissionThenOpenCamera();
-                            FrameData.FaceData bestface = Processfaces(_faces);
+                            try {
+                                CreateTrimmedVideo(Processfaces(_faces));
+                            } catch (IOException e) {
+                                Log.d(TAG,e.getMessage());
+                            }
+
                         }
                         else {
                             stopCameraSource(); //call this to release everything or all the shit breaks
@@ -185,17 +189,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void CreateTrimmedVideo(FrameData.Tuple<Long,Long> bestfacetimestamps) throws IOException {
 
+        VideoUtils.startTrim(RecordedVideoOutputFileFolder(), TrimmedVideoOutputFileFolder(), bestfacetimestamps.x, bestfacetimestamps.y);
+    }
 
-
-    private FrameData.FaceData Processfaces(ArrayList<FrameData> _faces)
+    private FrameData.Tuple<Long,Long> Processfaces(ArrayList<FrameData> _faces)
     {
-        if (_faces == null)
+        if (_faces == null || _faces.size() < GetFrameTotal()) {
+            Toast.makeText(context, "Not enough frames captured to process video for trim", Toast.LENGTH_SHORT).show();
             return null;
+        }
 
         ArrayList<FrameData.FaceData> corefinalscores = new ArrayList<>();
         int coreframeslength = _fps * 2; //core sample of frames will be two seconds of video might in future vary depending on user settings
-        int computelimit = _faces.size() - coreframeslength; //this will keep walking average calcs only happening within range
+        int computelimit = _faces.size() - GetFrameTotal(); //this will keep walking average calcs only happening within range
 
         for(FrameData facedata : _faces )
         {
@@ -206,13 +214,13 @@ public class MainActivity extends AppCompatActivity {
                 ArrayList<FrameData.FaceData> corescores = new ArrayList<>();
                 for (FrameData face : coreframes)
                 {
-                    corescores.add(new FrameData.FaceData(face._timeStamp, Utils.GetImageUsability(Utils.GetFirstFace(face._faces)))); //improve this buy moving all the face finding and scoring outside so its done only once per frame
+                    corescores.add(new FrameData.FaceData(face._timeStamp, Utils.GetImageUsability(Utils.GetFirstFace(face._faces)))); //todo improve this by moving all the face finding and scoring outside so its done only once per frame
                 }
 
                 double avg = Utils.calculateAverage(corescores);
                 double stDev = Utils.stDev(corescores);
 
-                corefinalscores.add(new FrameData.FaceData(currenttimestamp, avg - stDev )); //avg - std dev should give those with best avg score and lowest deviation
+                corefinalscores.add(new FrameData.FaceData(currenttimestamp, avg < stDev ? 0 :  avg  - stDev)); //avg - std dev should give those with best avg score and lowest deviation /no negatives
             }
             else //can't use computations past this point so just need timestamps
             {
@@ -220,13 +228,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        FrameData.FaceData bestfacedata = Collections.max(corefinalscores, new FrameData.compScore());
+        FrameData.FaceData bestFirstfacedata = Collections.max(corefinalscores, new FrameData.compScore());
 
-        return bestfacedata;
+        FrameData.FaceData bestLastfacedata = corefinalscores.get(corefinalscores.indexOf(bestFirstfacedata) + GetFrameTotal());
+
+        return new FrameData.Tuple<>(bestFirstfacedata._timeStamp, bestLastfacedata._timeStamp);
     }
 
 
-
+    private int GetFrameTotal()
+    {
+        return _fps * _vidlengthseconds; //total frames will always be frames per second * number of seconds
+    }
 
 
 
@@ -284,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (useCamera2) {
-                mCamera2Source = new Camera2Source.Builder(context, faceDetector, GetFileoutputPath())
+                mCamera2Source = new Camera2Source.Builder(context, faceDetector, RecordedVideoOutputFilePath())
                         .setFocusMode(Camera2Source.CAMERA_AF_AUTO)
                         .setFlashMode(Camera2Source.CAMERA_FLASH_AUTO)
                         .setFacing(facing) //Camera2Source.CAMERA_FACING_FRONT = 1 or CAMERA_FACING_BACK = 0
