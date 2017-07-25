@@ -22,6 +22,7 @@ import com.example.ezequiel.camera2.others.Camera2Source;
 import com.example.ezequiel.camera2.others.CameraSource;
 import com.example.ezequiel.camera2.others.CameraSourcePreview;
 import com.example.ezequiel.camera2.others.CustomFaceDetector;
+import com.example.ezequiel.camera2.others.ExtractMpegFramesTest;
 import com.example.ezequiel.camera2.others.FaceGraphic;
 import com.example.ezequiel.camera2.others.FrameData;
 import com.example.ezequiel.camera2.others.GraphicOverlay;
@@ -75,13 +76,12 @@ public class MainActivity extends AppCompatActivity {
 
     public Button recButton;
 
-    private boolean testmpegextract = true;
 
     private int _fps = 30;
 
     private int _vidlengthseconds = 3;
 
-    private File VideoFileDir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+    private File VideoFileDir;
 
     private String VideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
 
@@ -106,19 +106,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         try {
             super.onCreate(savedInstanceState);
-//            if (testmpegextract) {
-//                File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-//                String filename = "VID_20170714_133159.mp4";
-//                ExtractMpegFramesTest test = new ExtractMpegFramesTest();
-//                test.testExtractMpegFrames(_filesdir, filename);
-//            }
-
 
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
             //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); lock this in manifest instead
             setContentView(R.layout.activity_main);
             context = getApplicationContext();
-
+            VideoFileDir = context.getExternalFilesDir(null);
 
 
 
@@ -173,13 +166,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-//                new Thread(new Runnable() {
-//                    public void run() {
-//                        Checkfaces();
-//                    }
-//                }).start();
 
-                //Checkfaces();
                 //mPreview.setOnTouchListener(CameraPreviewTouchListener);
             }
         } catch (Throwable e) {
@@ -461,4 +448,13 @@ public class MainActivity extends AppCompatActivity {
             previewFaceDetector.release();
         }
     }
+
+    private void testextractframes() throws Throwable {
+        File _filesdir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        String filename = "VID_20170714_133159.mp4";
+        ExtractMpegFramesTest test = new ExtractMpegFramesTest();
+        test.testExtractMpegFrames(_filesdir, filename);
+    }
+
 }
+
