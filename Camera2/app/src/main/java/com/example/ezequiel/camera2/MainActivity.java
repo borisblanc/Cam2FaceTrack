@@ -83,19 +83,19 @@ public class MainActivity extends AppCompatActivity {
 
     private File VideoFileDir;
 
-    private String VideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
-
-    private String RecordedVideoOutputFilePath()
-    {
-        return new File(VideoFileDir, VideoFileName).getAbsolutePath();
-    }
-
     private File RecordedVideoOutputFileFolder()
     {
+        String VideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
         return new File(VideoFileDir, VideoFileName);
     }
 
     private File TrimmedVideoOutputFileFolder()
+    {
+        String trimVideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
+        return new File(VideoFileDir, trimVideoFileName);
+    }
+
+    private File MergedVideoOutputFileFolder()
     {
         String trimVideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
         return new File(VideoFileDir, trimVideoFileName);
@@ -112,8 +112,6 @@ public class MainActivity extends AppCompatActivity {
             setContentView(R.layout.activity_main);
             context = getApplicationContext();
             VideoFileDir = context.getExternalFilesDir(null);
-
-
 
             recButton = (Button) findViewById(R.id.btn_record);
             Button switchButton = (Button) findViewById(R.id.btn_switch);
@@ -176,9 +174,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void CreateTrimmedVideo(FrameData.Tuple<Long,Long> bestfacetimestamps) throws IOException {
+    private void CreateTrimmedVideo(FrameData.Tuple<Long,Long> bestfacetimestamps) throws IOException
+    {
 
-        VideoUtils.startTrim(RecordedVideoOutputFileFolder(), TrimmedVideoOutputFileFolder(), bestfacetimestamps.x, bestfacetimestamps.y);
+        VideoUtils.genTrimVideoUsingMuxer(RecordedVideoOutputFileFolder().getAbsolutePath(), TrimmedVideoOutputFileFolder().getPath(), bestfacetimestamps.x, bestfacetimestamps.y, false, true);
+
+        VideoUtils.muxVideos(MergedVideoOutputFileFolder().getAbsolutePath(), RecordedVideoOutputFileFolder().getAbsolutePath(),TrimmedVideoOutputFileFolder().getAbsolutePath(), context);
     }
 
     private FrameData.Tuple<Long,Long> Processfaces(ArrayList<FrameData> _faces)
@@ -284,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (useCamera2) {
-                mCamera2Source = new Camera2Source.Builder(context, faceDetector, RecordedVideoOutputFilePath())
+                mCamera2Source = new Camera2Source.Builder(context, faceDetector, RecordedVideoOutputFileFolder().getAbsolutePath())
                         .setFocusMode(Camera2Source.CAMERA_AF_AUTO)
                         .setFlashMode(Camera2Source.CAMERA_FLASH_AUTO)
                         .setFacing(facing) //Camera2Source.CAMERA_FACING_FRONT = 1 or CAMERA_FACING_BACK = 0
