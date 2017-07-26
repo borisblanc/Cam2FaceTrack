@@ -83,22 +83,22 @@ public class MainActivity extends AppCompatActivity {
 
     private File VideoFileDir;
 
+    private final String RecordedVideoFileName = "orig_" + Calendar.getInstance().getTimeInMillis() + ".mp4"; //this must stay constant during session
     private File RecordedVideoOutputFileFolder()
     {
-        String VideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
-        return new File(VideoFileDir, VideoFileName);
+        return new File(VideoFileDir, RecordedVideoFileName);
     }
 
+    private final String trimVideoFileName = "trim_" + Calendar.getInstance().getTimeInMillis() + ".mp4"; //this must stay constant during session
     private File TrimmedVideoOutputFileFolder()
     {
-        String trimVideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
         return new File(VideoFileDir, trimVideoFileName);
     }
 
+    private final String mergeVideoFileName = "merged_" + Calendar.getInstance().getTimeInMillis() + ".mp4"; //this must stay constant during session
     private File MergedVideoOutputFileFolder()
     {
-        String trimVideoFileName = Calendar.getInstance().getTimeInMillis() + ".mp4";
-        return new File(VideoFileDir, trimVideoFileName);
+        return new File(VideoFileDir, mergeVideoFileName);
     }
 
 
@@ -111,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
             //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); lock this in manifest instead
             setContentView(R.layout.activity_main);
             context = getApplicationContext();
+
             VideoFileDir = context.getExternalFilesDir(null);
 
             recButton = (Button) findViewById(R.id.btn_record);
@@ -176,10 +177,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void CreateTrimmedVideo(FrameData.Tuple<Long,Long> bestfacetimestamps) throws IOException
     {
+        Toast.makeText(this, "Starting Trim Video", Toast.LENGTH_SHORT).show();
+        VideoUtils.genTrimVideoUsingMuxer(RecordedVideoOutputFileFolder().getPath(), TrimmedVideoOutputFileFolder().getPath(), bestfacetimestamps.x, bestfacetimestamps.y, false, true);
 
-        VideoUtils.genTrimVideoUsingMuxer(RecordedVideoOutputFileFolder().getAbsolutePath(), TrimmedVideoOutputFileFolder().getPath(), bestfacetimestamps.x, bestfacetimestamps.y, false, true);
+        Toast.makeText(this, "Starting Merge Video", Toast.LENGTH_SHORT).show();
+        VideoUtils.mergeVideos(MergedVideoOutputFileFolder().getAbsolutePath(), RecordedVideoOutputFileFolder().getAbsolutePath(),TrimmedVideoOutputFileFolder().getAbsolutePath());
 
-        VideoUtils.muxVideos(MergedVideoOutputFileFolder().getAbsolutePath(), RecordedVideoOutputFileFolder().getAbsolutePath(),TrimmedVideoOutputFileFolder().getAbsolutePath(), context);
+        Toast.makeText(this, "All Done!!", Toast.LENGTH_SHORT).show();
     }
 
     private FrameData.Tuple<Long,Long> Processfaces(ArrayList<FrameData> _faces)

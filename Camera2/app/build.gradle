@@ -29,4 +29,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.3.0'
     compile 'com.google.android.gms:play-services-vision:10.2.0'
     testCompile 'junit:junit:4.12'
+    compile 'com.googlecode.mp4parser:isoparser:1.0.5.4'
 }
